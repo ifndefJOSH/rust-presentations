@@ -367,9 +367,9 @@ A more advanced solution:
 
 ```rust
 env::args()
-	.skip(1)                                   // Skip the first argument (the executable name),
-	.filter_map(|arg| arg.parse::<i32>().ok()) // parse each argument to an i32 int,
-.for_each(|i| {                                // and iterate on the results
+	.skip(1)                            // Skip the first argument (the executable name),
+	.flat_map(|arg| arg.parse::<i32>()) // parse each argument to an i32 int,
+.for_each(|i| {                         // and iterate on the results
 	let intermediate_steps = (1..=i) 
 		.map(|j| j.to_string())
 		.collect::<Vec<_>>()
