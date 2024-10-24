@@ -367,21 +367,16 @@ A more advanced solution:
 
 ```rust
 env::args()
-	.skip(1)                       // Skip the first argument (the executable name),
-	.map(|arg| arg.parse::<i32>()) // parse each argument to an i32 int,
-	.filter(|i| i.is_ok())         // only operate on successful parsings,
-.for_each(|i| {                    // and iterate on the results
-	// At this point, we know this won't panic
-	let i_value = i.unwrap();
-	let range : Vec<i32> = (1..=i_value).collect();
-	let intermediate_steps = range
-		.iter()
+	.skip(1)                                   // Skip the first argument (the executable name),
+	.filter_map(|arg| arg.parse::<i32>().ok()) // parse each argument to an i32 int,
+.for_each(|i| {                                // and iterate on the results
+	let intermediate_steps = (1..=i) 
 		.map(|j| j.to_string())
 		.collect::<Vec<_>>()
 		.join(" * ");
 	// Compute the factorial via closure and .fold()
-	let fac : i128 = range.iter().fold(1, |acc, j| acc * (*j as i128));
-	println!("{}! = {} = {}", i_value, intermediate_steps, fac)
+	let fac : i128 = (1..=i).fold(1, |acc, j| acc * (j as i128));
+	println!("{}! = {} = {}", i, intermediate_steps, fac)
 });
 ```
 
