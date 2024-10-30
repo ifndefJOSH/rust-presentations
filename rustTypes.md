@@ -68,6 +68,19 @@ let name = "Zhen";
 add_name(greeting, name);
 ```
 
+# Strings, an exercise
+
+Create a program that:
+
+- determines if strings passed in via `env::args()` are palindromes *without* copying or modifying the strings!
+- If the word is a palindrome, simply print (`this word is a palindrome`).
+- If not, compute the number of character changes needed to make it a palindrome, and apply those changes to a *new* string.
+	+ Print the new string.
+- Your program should contains a function which performs your evaluation.
+	- It should take a reference to a string slice (i.e., a `&str`)
+	- It should return an `Option<String>` which is empty iff the word passed in is a palindrome.
+		+ We'll talk more about `Option`s later but you've already seen them.
+
 # Type Casting
 
 - *No implicit type conversion or casting!*
@@ -126,12 +139,17 @@ fn errorAndExit(errMsg : &str) -> ! {
 
 # Function Types
 
+- Functions are first-class objects in Rust and are represented by the `fn` (function pointer) type
+- It's more common to let the type-inference system assign the type of a function variable.
+- It's also common to restrict the type to anything that implements the `Fn` or `FnMut` traits.
+	+ We'll talk more about this later
+
 # The `Option` and `Result` Types
 
 - Because Rust requires all types to hold a value, and does not have any equivalent of `null` or `nil`, we need some way to handle when a value cannot be created.
 - Some languages have type unions (e.g. `T | null` in Dafny or similar in TypeScript), but Rust takes a different approach.
 - **The goal:** We want a wrapper that can contain a computation result, or may not.
-    + If you're into functional programming, you may recognize these as types of *monad*.
+    + If you're into functional programming, you may recognize these as common types of *monad*.
 
 # Choice 1: `Option`
 
@@ -190,4 +208,75 @@ This may hold a `T` if present, or an `E` (error) if not successful.
 ```rust
 // Type inference of someVec being Vec<u8>
 let mut someVec = Vec<u8>::new();
+```
+
+# Trait Types
+
+- A trait is a special type of object that defines *behavior*.
+	+ Similar to an *interface* or abstract class in OOP languages.
+- Any object that implements a trait `MyTrait` can be referred to by `dyn MyTrait` or `impl MyTrait`
+	+ `dyn` is a dynamic dispatch object that can be referenced. `impl MyTrait` is passed by value
+- Traits may be *implemented* for *any* type using the `impl` keyword.
+
+# Traits: A Basic Example
+
+```rust
+trait ShapeLike {
+	fn area(&self) -> f32;
+	fn circumference(&self) -> f32;
+}
+
+// #[derive(Trait)] Lets us automatically get a free implementation for trait Trait
+#[derive(Copy, Clone)] 
+struct Circle { radius: f32, }
+#[derive(Copy, Clone)]
+struct Rectangle { width: f32, height: f32 }
+
+impl ShapeLike for Circle {
+	fn area(&self) -> f32 { 3.1415 * self.radius * self.radius }
+	fn circumference(&self) -> f32 { 2.0 * 3.1415 * self.radius }
+}
+
+impl ShapeLike for Rectangle {
+	fn area(&self) -> f32 { self.width * self.height }
+	fn circumference(&self) -> f32 { 2.0 * (self.width + self.height) }
+}
+```
+
+# Using Our Example
+
+```rust
+// We can take a vector of things which implement the
+// ShapeLike trait, rather than a vector of Circles or Rectangles
+fn total_disjoint_area(shapes : Vec<Box<dyn ShapeLike>>) -> f32 {
+	shapes.iter()
+	.map(|x| x.area())
+	.sum()
+}
+
+// Pass by value. This takes an actual copy of something that implements
+// ShapeLike and uses it in the function. 
+fn sum_of_circumferences(shape1 : impl ShapeLike, shape2 : impl ShapeLike) -> f32 {
+	shape1.circumference() + shape2.circumference()
+}
+
+// Pass by reference. We take a reference to the dynamic dispatch object, `dyn ShapeLike`
+fn sum_of_circumferences_ref(shape1 : &dyn ShapeLike, shape2 : &dyn ShapeLike) -> f32 {
+	shape1.circumference() + shape2.circumference()
+}
+
+fn main() {
+	let shapes : Vec<Box<dyn ShapeLike>> = vec![
+		Box::<Circle>::new(Circle{ radius: 2.6}),
+		Box::<Circle>::new(Circle{ radius: 3.4}),
+		Box::<Rectangle>::new(Rectangle{ width: 3.2, height: 1.5})];
+
+	println!("Total used area {}", total_disjoint_area(shapes));
+
+	let circle1 = Circle{ radius: 5.0 };
+	let square = Rectangle{ width: 2.0, height: 2.0 };
+
+	println!("Sum of first two circumferences (pbv) {}", sum_of_circumferences(circle1, square));
+	println!("Sum of first two circumferences (pbr) {}", sum_of_circumferences_ref(&circle1, &square));
+}
 ```

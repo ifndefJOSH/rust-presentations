@@ -162,7 +162,7 @@ The for loop can also be written as...
 for arg in &env::args().collect::<Vec<_>>()[1..] {
 ```
 
-...but this is less memory efficient because it copies the args into a `Vec`. 
+...but this is less memory efficient because it copies the args into a `Vec`.
 
 # Solution
 
@@ -186,12 +186,12 @@ Rust has all of the standard control flow statements:
 We can use `if` traditionally...
 
 ```rust
-if condition { 
-	... 
-} else if condition2 { 
-	... 
-} else { 
-	... 
+if condition {
+	...
+} else if condition2 {
+	...
+} else {
+	...
 }
 ```
 
@@ -207,7 +207,7 @@ let myVal = if condition { option1 } else { option2 };
 Executes while `condition` is true:
 
 ```rust
-while condition { 
+while condition {
 	// Do something here
 }
 ```
@@ -281,10 +281,10 @@ println!("Hello {}!", names);
 
 # Exercise 3
 
-- The user will input a list of numbers via `argv`. 
+- The user will input a list of numbers via `argv`.
 - You are to compute the factorial of each number and print them on stdout.
-	+ You are also to show the *intermediate* steps of the computation. 
-    + I.e., if you get `3`, you should print `3! = 1 * 2 * 3 = 6`. 
+	+ You are also to show the *intermediate* steps of the computation.
+    + I.e., if you get `3`, you should print `3! = 1 * 2 * 3 = 6`.
 - If you get a float or something that doesn't parse to an int, just ignore it.
 - No need to memoize or do any dynamic programming at this point.
 
@@ -346,9 +346,8 @@ for arg in env::args().skip(1) {
 		continue;
 	}
 	let i_value = i_option.unwrap();
-	let range : Vec<i32> = (1..=i_value).collect();
+	let range : Vec<i32> = (1..=i_value);
 	let intermediate_steps = range
-		.iter()
 		.map(|j| j.to_string())
 		.collect::<Vec<_>>()
 		.join(" * ");
@@ -370,7 +369,7 @@ env::args()
 	.skip(1)                            // Skip the first argument (the executable name),
 	.flat_map(|arg| arg.parse::<i32>()) // parse each argument to an i32 int,
 .for_each(|i| {                         // and iterate on the results
-	let intermediate_steps = (1..=i) 
+	let intermediate_steps = (1..=i)
 		.map(|j| j.to_string())
 		.collect::<Vec<_>>()
 		.join(" * ");
