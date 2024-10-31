@@ -167,6 +167,9 @@ This may hold either a value of `T`, or nothing.
 
 ```rust
 pub fn sqrt(input : f32) -> Option<f32> {
+	if input < 0 {
+		return None;
+	}
 	/* Do something here */
 }
 
@@ -183,6 +186,38 @@ match m {
 pub enum Result<T, E> {
 	Ok(T),
 	Err(E)
+}
+```
+
+# An example of `Result`
+
+```rust
+use std::{error::Error, fmt};
+
+#[derive(Copy, Clone)]
+struct ImaginaryResultError {
+	input : f32,
+};
+
+impl Error for ImaginaryResultError {}
+
+impl fmt::Display for ImaginaryResultError {
+	fn fmt(&self, f : &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "The input {input} is outside of the range for sqrt!");
+	}
+}
+
+pub fn sqrt(input : f32) -> Result<f32, ImaginaryResultError> {
+	if input < 0 {
+		return Err(ImaginaryResultError { input });	
+	}
+	/* Do something here */
+}
+
+let m = sqrt(someVariable);
+match m {
+	Ok(x) => /* Handle x = sqrt(someVariable) */
+	Err(e) => /* Handle e = error type */
 }
 ```
 
@@ -203,11 +238,26 @@ This may hold a `T` if present, or an `E` (error) if not successful.
 		* The `T` it points to must be valid and initialized (enforced by the language).
 	+ An `Option<Box<T>>` represents a *nullable* heap pointer.
 
+Boxes are generally initialized at resource acquisition time (RAII), but they don't have to be:
+
+```rust
+// modified from example in docs at https://doc.rust-lang.org/std/boxed/struct.Box.html
+let mut someNumber = Box::<u32>::new_uninit();
+let num = unsafe { // Note we can only use this in an unsafe block because it wasn't initialized!!!
+	someNumber.as_mut_ptr().write(12345);
+	someNumber.assume_init();
+}
+```
+
 # An example
 
 ```rust
 // Type inference of someVec being Vec<u8>
 let mut someVec = Vec<u8>::new();
+// Type inference as (f32, String)
+let myTuple : (_, _) = (81.3 as f32, String::from("blorp"));
+// Places this tuple on the heap rather than the stack
+let heapAllocated = Box::<(u16, u16, f64)>::new((4, 62, 11.6));
 ```
 
 # Trait Types
@@ -305,6 +355,29 @@ fn main() {
 
 In our example, what lives on the heap, and what lives on the stack?
 
+# Comprehension Question
+
+In our example, what lives on the heap, and what lives on the stack?
+
+```rust
+fn main() {
+	// HEAP ALLOCATED
+	let shapes : Vec<Box<dyn Geometry>> = vec![
+		Box::<Circle>::new(Circle{ radius: 2.6 }),
+		Box::<Circle>::new(Circle{ radius: 3.4 }),
+		Box::<Rectangle>::new(Rectangle{ width: 3.2, height: 1.5 })];
+
+	println!("Total used area {}", total_disjoint_area(shapes));
+
+	// STACK ALLOCATED
+	let circle1 = Circle{ radius: 5.0 };
+	let square = Rectangle{ width: 2.0, height: 2.0 };
+
+	println!("Sum of first two circumferences (pbv) {}", sum_of_circumferences(circle1, square));
+	println!("Sum of first two circumferences (pbr) {}", sum_of_circumferences_ref(&circle1, &square));
+}
+
+```
 # Exercise
 
 - You work at a store with multiple different kinds of media products: books, movies, etc.
@@ -316,3 +389,14 @@ In our example, what lives on the heap, and what lives on the stack?
 - The `genre` fields should all be *unique* enum types, e.g., `enum BookGenre`, `enum MovieGenre`, `enum MusicGenre`. You don't read a "synthwave" book.
 - Create a list of mixed books, movies, and albums, and print each one.
 - **Extra ~~Credit~~ Kudos:** use `partition()` or `filter()` (or some unholy overpowered thing in the crate `itertools`) to get vectors of just the books, movies, etc.
+
+# Conclusion
+
+- We covered:
+	- Primitve and complex types in Rust
+	- Pointers, arrays, etc.
+	- Traits
+	- The `Option` and `Result` monads
+- Next time:
+	- More on function types
+	- Generators and functional stuff
