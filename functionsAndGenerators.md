@@ -3,6 +3,10 @@ title: Functions and Generators in Rust, C++, and Python
 author: Josh Jeppson
 ---
 
+# The plan for today
+
+We're going to compare some of the features in Rust with two languages you're probably familiar with, namely, Python and C++.
+
 # Functions in Rust, C++, and Python
 
 In Python and Rust, functions are *first-class citizens*. Thus they can be:
@@ -120,7 +124,7 @@ fn foo(x : i32) -> i32{
 	bar(2) / bar(3)
 }
 ```
-<!--*Note: This is an example of __implicit return__ where the last line of a function has no semicolon and its output is returned.*-->
+*Note: This is an example of __implicit return__ where the last line of a function has no semicolon and its output is returned.*
 
 ...but nested functions are not valid closures.
 
@@ -271,3 +275,168 @@ Any `T` that implements `SomeTrait` may be operated on by `generic_foo`.
 	+ Less prone to error due to code-reuse
 	+ More readable than the alternative
 	+ Faster (especially in interpreted languages like Python)
+
+# Generate/Map and Filter all in one
+
+- You've seen `filter_map()` and `flat_map()` before.
+    + `filter_map` only includes `x` when your lambda returns `Some(x)` (Option)
+    + `flat_map` only includes `x` when your lambda returnes `Ok(x)` (Result)
+- So we can use `filter_map`/`flat_map` much like the following Python syntax.
+
+```python
+hasFactor6 = [2 * x for x in myVec if x % 3 == 0]
+```
+Now for the Rust:
+
+```rust
+let hasFactor6 = myVec.filter_map(|x| if x % 3 == 0 { Some(2 * x) } else { None }).collect();
+```
+
+# `fold` (and `reduce`)
+
+- If you've used Scala, Haskell, Lisp, etc., you're familiar with the concept of `reduce` and `fold`.
+- Rust has these, too!
+    + `fold` is built in, as is `reduce`, as well as some variants such as `try_fold` and `try_reduce`
+
+Some examples:
+```rust
+// `fold` requires an initial value
+let n_factorial = (2..=n).fold(1, |acc, i| acc * i).unwrap();
+// Whereas `reduce` does not (just assumes the first element in the list is initial)
+let also_n_factorial = (2..=n).reduce(|acc, i| acc * i).unwrap();
+// We can utilize try_fold's short-circuit'ing to see if a number is prime in a oneliner
+let n_is_prime = (2..n).try_fold(0, |_acc, i| if n % i == 0 { None } else { Some(i) } ).is_some();
+```
+
+You may have seen this in Python if you are familiar with `functools`
+
+```python
+from functools import reduce
+nFactorial = reduce(lambda acc, i : acc * i, range(n))
+```
+
+Technically, C++ allows the same with `std::accumulate` in `<numeric>`, but does not provide nice range iterators (until C++20):
+
+```c++
+#include <numeric>
+
+// This is horrible code. Do not do this.
+// It uses WAY too much auxiliary space to compute a factorial.
+// Just use a for loop.
+std::vector<uint32_t> nRange(n);
+std::iota(nRange.begin(), nRange.end(), 1);
+uint32_t nFactorial = std::accumulate(nRange.begin(), nRange.end(),
+        [](uint32_t acc, uint32_t i) { return acc * i; });
+        // You can also give std::multiplies<uint32_t>(). Because the C++ STL is overdefined.
+```
+
+But at this point we're abusing the C++ STL and should stop.
+
+# Exercise
+
+Using `fold` or `reduce`, reimpliment `join` on an arbitrary slice.
+
+```rust
+fn my_join(list: &[impl ToString], delimiter : &str) -> String {
+    // your code here.
+}
+```
+
+# A solution
+
+```rust
+fn my_join(list: &[impl ToString], delimiter : &str) -> String {
+	list.iter().fold(String::new(), |mut acc, x| {
+        if !acc.is_empty() {
+			acc.push_str(delimiter);
+		}
+		acc.push_str(&x.to_string());
+		acc
+	})
+}
+```
+
+# We've achieved with traits what in other languages we'd have to do via generics
+
+```rust
+// Generic
+let numbers = vec![1, 2, 3, 4, 5];
+let strings = vec!["hello", "world"];
+
+println!("{}", my_join(&numbers, "-")); // Legal
+println!("{}", my_join(&strings, "-")); // Legal
+```
+
+Extra credit, modify your code to join the following mixed-type vector:
+
+```rust
+let mixed : Vec<Box<dyn ToString>> = vec![
+	Box::new(1), 
+	Box::new("two"), 
+	Box::new(3.14), 
+	Box::new("four")]; // Both &str and u16, as well as f32 all implement ToString
+
+```
+
+# Extra Credit Solution
+
+There's a good chance all you need to do is change your function signature:
+
+```rust
+fn my_join_alt(list: &[Box<dyn ToString>], delimiter : &str) -> String { ...
+```
+
+# Exercise
+
+*Using only generators and functional tools*, create a list of the first `n` primes.
+
+- No need for memoization right now
+
+# A Solution
+
+```rust
+fn is_prime(n : u32) -> bool {
+	// try_fold short circuites if it sees None
+	(2..n).try_fold(0, |_acc, i| if n % i == 0 { None } else { Some(i) } ).is_some()
+}
+
+fn first_n_primes(n : u32) -> Vec<u32> {
+	let mut last_prime = 0;
+	(0..n).map(|_i| {
+		last_prime += 1;
+		while !is_prime(last_prime) {
+			last_prime += 1;
+		}
+		last_prime
+	}).collect::<Vec<u32>>()
+}
+```
+
+# A Memoization Solution
+
+```rust
+// Create `memoize` automatically can memoize (side-effect free) functions
+use memoize::memoize;
+
+#[memoize] // All we need to do is add the `memoize` decorator
+fn is_prime(n : u32) -> bool {
+	// try_fold short circuites if it sees None
+	(2..n).try_fold(0, |_acc, i| if n % i == 0 { None } else { Some(i) } ).is_some()
+}
+
+fn first_n_primes(n : u32) -> Vec<u32> {
+	let mut last_prime = 0;
+	(0..n).map(|_i| {
+		last_prime += 1;
+		while !is_prime(last_prime) {
+			last_prime += 1;
+		}
+		last_prime
+	}).collect::<Vec<u32>>()
+}
+```
+
+# Another Exercise (Homework)
+
+- Using the Prime Number Theorem and the Sieve of Eratosthenes, re-implement `first_n_primes`.
+
